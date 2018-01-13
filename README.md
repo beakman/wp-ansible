@@ -1,6 +1,6 @@
 # WordPress Ansible Setup
 
-Based on [Hosting WordPress Yourself](https://github.com/A5hleyRich/wordpress-ansible/blob/master/provision.yml)
+Based on [Hosting WordPress Yourself](https://github.com/A5hleyRich/wordpress-ansible/)
 
 ## Usage
 
