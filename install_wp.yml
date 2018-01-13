@@ -1,0 +1,20 @@
+---
+- hosts: production
+  user: <username>
+  vars:
+    username: <username>
+    ansible_become_pass: <root password>
+    password: <hashed username password> # mkpasswd --method=sha-512
+    public_key: ~/.ssh/id_rsa.pub
+    domain: <yourdomain.com>
+    pushbullet_api_key: <pushbullet_api_key> # https://www.pushbullet.com/#settings/account
+    db: <database name>
+    dbuser: <database user>
+    dbuser_passwd: <database password>
+    wp_title: <wordpress site title>
+    wp_url: <wordpress site url http://yourdomain.com>
+    wp_email: <youremail>
+    wp_user: <wordpress user>
+    wp_password: <wordpress user password>
+  roles: 
+   - wp-setup

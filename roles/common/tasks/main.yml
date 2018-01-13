@@ -12,3 +12,8 @@
   - git-core
   - redis-server
   - ufw
+
+- name: Config redis
+  template:
+    src: templates/redis.conf
+    dest: "/etc/redis/redis.conf"

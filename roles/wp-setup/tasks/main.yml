@@ -1,0 +1,159 @@
+---
+- name: Create site directory structure
+  file:
+    path: "/home/{{username}}/{{domain}}/{{item}}"
+    owner: "{{username}}"
+    group: "{{username}}"
+    mode: 0755
+    recurse: yes
+    state: directory
+  with_items: ["logs", "public", "backup"]
+
+- name: Create Letsencrypt directories
+  file:
+    path: /home/{{username}}/{{domain}}/public/.well-known/acme-challenge
+    state: directory
+
+- name: Create test file inside acme-challenge
+  file:
+    path: /home/{{username}}/{{domain}}/public/.well-known/acme-challenge/test.txt
+    state: touch
+
+- stat:
+    path: /home/{{username}}/{{domain}}/public/.well-known/acme-challenge
+  register: p
+- debug:
+    msg: "El directorio /.well-known/acme-challenge existe"
+  when: p.stat.isdir is defined and p.stat.isdir
+
+
+- name: Add {{ domain }} HTTP config template to the Nginx available sites
+  become: true
+  template:
+    src: templates/fastcgi-cache.com
+    dest: "/etc/nginx/sites-available/{{ domain }}"
+
+- name: Enable HTTP config
+  become: true
+  file:
+    src: "/etc/nginx/sites-available/{{ domain }}"
+    dest: "/etc/nginx/sites-enabled/{{ domain }}"
+    state: link
+  
+- name: Restart nginx
+  become: true
+  service:
+    name: nginx
+    state: restarted
+
+- name: Install certificate
+  become: true
+  command: certbot certonly --webroot --renew-by-default --quiet --non-interactive -m {{wp_email}} --agree-tos --rsa-key-size 4096 -w /home/{{username}}/{{domain}}/public/ -d {{domain}} --no-eff-email
+
+- name: Improve security
+  become: true
+  command: openssl dhparam -out dhparam.pem 4096
+  args:
+      chdir: "/etc/ssl/certs/"
+
+- name: Add {{ domain }} HTTP(S) config template to the Nginx available sites
+  become: true
+  template:
+    src: templates/ssl-fastcgi-cache.com
+    dest: "/etc/nginx/sites-available/{{ domain }}"
+
+- name: Enable config
+  become: true
+  file:
+    src: "/etc/nginx/sites-available/{{ domain }}"
+    dest: "/etc/nginx/sites-enabled/{{ domain }}"
+    state: link
+
+- name: Restart nginx
+  become: true
+  service:
+    name: nginx
+    state: restarted
+
+- name: Restart Redis
+  become: true
+  service:
+    name: redis-server
+    state: restarted
+
+- name: Restart PHP-FPM
+  become: true
+  service:
+    name: php7.1-fpm
+    state: restarted
+
+- name: Create a new database with name {{db}}
+  become: true
+  mysql_db:
+    name: "{{db}}"
+    state: present
+
+- name: Create user {{dbuser}} and grant all privileges to database {{db}}
+  become: true
+  mysql_user:
+    name: "{{dbuser}}"
+    password: "{{dbuser_passwd}}"
+    priv: '{{db}}.*:ALL'
+    state: present
+
+- name: Download Wordpress core files
+  shell: wp core download
+  args:
+    chdir: /home/{{username}}/{{domain}}/public
+
+- name: Configure WordPress
+  command: wp core config
+           --path="/home/{{username}}/{{domain}}/public"
+           --dbname="{{ db }}"
+           --dbuser="{{ dbuser }}"
+           --dbpass="{{ dbuser_passwd }}"
+           --dbprefix="wp_"
+  remote_user: "{{ username }}"
+
+- name: Install WordPress tables
+  command: wp core install
+            --url="{{ wp_url }}"
+            --title="{{ wp_title }}"
+            --admin_user="{{ wp_user }}"
+            --admin_password="{{ wp_password }}"
+            --admin_email="{{ wp_email }}"
+  args:
+      chdir: "/home/{{username}}/{{domain}}/public"
+  remote_user: "{{ username }}"
+
+- name: Install WordPress redis-cache plugin
+  command: wp plugin install redis-cache --activate
+  args:
+      chdir: "/home/{{username}}/{{domain}}/public"
+  remote_user: "{{ username }}"
+
+- name: Install WordPress nginx-cache plugin
+  command: wp plugin install nginx-cache --activate
+  args:
+      chdir: "/home/{{username}}/{{domain}}/public"
+  remote_user: "{{ username }}"  
+
+- name: Create backup script
+  template:
+    src: templates/backup-script.sh
+    dest: "/home/{{username}}/{{domain}}/"
+
+- name: "Create daily backup package"
+  cron:
+    name: "create daily backup package"
+    hour: 9
+    job: "/home/{{username}}/{{domain}}/backup-script.sh daily"
+    state: present
+
+- name: "Create weekly backup package"
+  cron:
+    name: "create weekly backup package"
+    day: 1
+    hour: 10
+    job: "/home/{{username}}/{{domain}}/backup-script.sh weekly"
+    state: present

@@ -1,0 +1,7 @@
+---
+- name: Install Letsencrypt
+  apt:
+    name: letsencrypt
+    state: present
+    force: yes
+    update_cache: yes

@@ -4,3 +4,10 @@
     name: mariadb-server
     state: present
     force: yes
+
+- name: Install MySQL Python
+  become: yes
+  apt:
+    name: python-mysqldb
+    state: present
+    force: yes
