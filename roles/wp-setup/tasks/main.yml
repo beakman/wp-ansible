@@ -136,7 +136,13 @@
   command: wp plugin install nginx-cache --activate
   args:
       chdir: "/home/{{username}}/{{domain}}/public"
-  remote_user: "{{ username }}"  
+  remote_user: "{{ username }}"
+
+- name: Install WordPress mailgun plugin
+  command: wp plugin install mailgun --activate
+  args:
+      chdir: "/home/{{username}}/{{domain}}/public"
+  remote_user: "{{ username }}" 
 
 - name: Create backup script
   template:
