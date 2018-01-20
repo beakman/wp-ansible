@@ -12,7 +12,7 @@ rsync -az --delete $wpdir/ $rsyncdest
 if [ $1 = 'daily' ]
 then
     tar -cjSf /home/{{username}}/{{domain}}/backup/{{domain}}-daily.tar.bz2 /home/{{username}}/{{domain}}/
-elif [ $2 == 'weekly' ]
+elif [ $1 = 'weekly' ]
 then
     tar -cjSf /home/{{username}}/{{domain}}/backup/{{domain}}-weekly.tar.bz2 /home/{{username}}/{{domain}}/
     curl --header 'Access-Token: {{pushbullet_api_key}}' \
